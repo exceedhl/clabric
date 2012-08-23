@@ -9,8 +9,7 @@
   [name hosts description & body]
   `(def ~name (Task. (name '~name) ~hosts ~description (fn [] ~@body))))
 
-(defn execute
-  [task & options]
+(defn execute [task & options]
   (binding [*hosts* (:hosts task)
             *options* (merge *options* (apply array-map options))]
    ((:body task))))

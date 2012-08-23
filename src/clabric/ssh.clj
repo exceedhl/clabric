@@ -12,24 +12,21 @@
 (defn current-user-home []
   (System/getProperty "user.home"))
 
-(defn ssh-session
-  [{:keys [host port user private_key_path]
-    :or {port 22
-         user (current-user)
-         private_key_path (str (current-user-home) "/.ssh/id_rsa")}}]
+(defn ssh-session [{:keys [host port user private_key_path]
+                    :or {port 22
+                         user (current-user)
+                         private_key_path (str (current-user-home) "/.ssh/id_rsa")}}]
   (JSch/setConfig "StrictHostKeyChecking" "no")
   (let [jsch (JSch.)]
     (.addIdentity jsch private_key_path)
     (.getSession jsch user host port)))
 
-(defmacro- with-connected-session
-  [session & body]
+(defmacro- with-connected-session [session & body]
   `(try (.connect ~session)
         ~@body
         (finally (.disconnect ~session))))
 
-(defmacro- with-connected-channel
-  [ch & body]
+(defmacro- with-connected-channel [ch & body]
   `(try (.connect ~ch)
         ~@body
         (finally (.disconnect ~ch))))
