@@ -6,3 +6,5 @@
   (distribute (fn [option]
                 (let [option (merge option (apply array-map options))]
                   (ssh-exec (ssh-session option) command)))))
+
+(defn cmd [command & options])

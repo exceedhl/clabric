@@ -18,3 +18,6 @@
   (let [options (map (fn [host]
                        (merge *options* {:host host})) *hosts*)]
     (map f (vec options))))
+
+(defn local [f]
+  (f *options*))
