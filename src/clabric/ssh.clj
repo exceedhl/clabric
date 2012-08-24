@@ -1,16 +1,11 @@
 (ns clabric.ssh
-  (:use clojure.contrib.def)
+  (:use [clojure.contrib.def]
+        [clabric.util])
   (:import
    [java.io
     ByteArrayInputStream ByteArrayOutputStream]
    [com.jcraft.jsch
     JSch Session Channel ChannelShell ChannelExec ChannelSftp JSchException]))
-
-(defn current-user []
-  (System/getProperty "user.name"))
-
-(defn current-user-home []
-  (System/getProperty "user.home"))
 
 (defn ssh-session [{:keys [host port user private_key_path]
                     :or {port 22

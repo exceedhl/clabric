@@ -1,6 +1,7 @@
 (ns clabric.ssh-spec
   (:use [speclj.core]
-        [clabric.ssh])
+        [clabric.ssh]
+        [clabric.util])
   (:import
    [java.io File]
    [com.jcraft.jsch JSchException]))
@@ -21,7 +22,7 @@
           output (:out result)
           error (:err result)]
       (should= 0 exit)
-      (should= "vagrant\n" output)
+      (should= (str @user "\n") output)
       (should= "" error)))
 
   (it "should return error if command execution failed"
