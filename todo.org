@@ -1,3 +1,9 @@
+* add put, get
+* support timeout in ssh
+* support password in ssh
+* add a main to support task list, passing options from cli
+* add lein support
+
 ;; (def ^:dynamic *options* {})
 
 ;; (deftype Task
