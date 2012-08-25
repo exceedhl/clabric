@@ -26,18 +26,19 @@
         ~@body
         (finally (.disconnect ~ch))))
 
-(defn ssh-exec [session command]
-  (with-connected-session session
-    (let [out (ByteArrayOutputStream.)
-          err (ByteArrayOutputStream.)
-          ^ChannelExec exec (.openChannel session "exec")]
-      (doto exec
-        (.setOutputStream out)
-        (.setErrStream err)
-        (.setCommand command))
-      (with-connected-channel exec
-        (while (.isConnected exec)
-          (Thread/sleep 100))
-        ;; (if (> (.size out) 0) (info (.toString out)))
-        ;; (if (> (.size err) 0) (error (.toString err)))
-        {:exit (.getExitStatus exec) :out (.toString out) :err (.toString err)}))))
+(defn ssh-exec [command options]
+  (let [session (ssh-session options)]
+    (with-connected-session session
+      (let [out (ByteArrayOutputStream.)
+            err (ByteArrayOutputStream.)
+            ^ChannelExec exec (.openChannel session "exec")]
+        (doto exec
+          (.setOutputStream out)
+          (.setErrStream err)
+          (.setCommand command))
+        (with-connected-channel exec
+          (while (.isConnected exec)
+            (Thread/sleep 100))
+          ;; (if (> (.size out) 0) (info (.toString out)))
+          ;; (if (> (.size err) 0) (error (.toString err)))
+          {:exit (.getExitStatus exec) :out (.toString out) :err (.toString err)})))))

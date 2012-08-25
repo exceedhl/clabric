@@ -11,13 +11,10 @@
   (with port 22)
   (with user "vagrant")
   (with private_key_path (str (current-user-home) "/.ssh/vagrant_private_key"))
-  (with session-params {:host @host :port @port :user @user
-                        :private_key_path @private_key_path})
-  (with session
-    (ssh-session @session-params))
+  (with ssh-exec-default #(ssh-exec %1 {:host @host :user @user :port @port :private_key_path @private_key_path}))
 
   (it "should be able to execute simple command successfully"
-    (let [result (ssh-exec @session "whoami")
+    (let [result (@ssh-exec-default "whoami")
           exit (:exit result)
           output (:out result)
           error (:err result)]
@@ -25,8 +22,8 @@
       (should= (str @user "\n") output)
       (should= "" error)))
 
-  (it "should be able to execute complex commands successfully"
-    (let [result (ssh-exec @session "cd /tmp; pwd | wc -c")
+  (it "should be able to execute commands successfully"
+    (let [result (@ssh-exec-default "cd /tmp; pwd | wc -c")
           exit (:exit result)
           output (:out result)
           error (:err result)]
@@ -35,7 +32,7 @@
       (should= "" error)))
 
   (it "should return error if command execution failed"
-    (let [result (ssh-exec @session "wrong-command")
+    (let [result (@ssh-exec-default "wrong-command")
           exit (:exit result)
           output (:out result)
           error (:err result)]
@@ -48,29 +45,30 @@
   (context "with not enough parameters"
     (with session-params {:host @host})
     (it "should use default value"
-      (should= (current-user) (.getUserName @session))
-      (should= 22 (.getPort @session))))
+      (let [session (ssh-session @session-params)]
+        (should= (current-user) (.getUserName session))
+        (should= 22 (.getPort session)))))
   
   (context "with wrong key"
     (with private_key_path "non-existing key")
     (it "should throw exception"
       (should-throw JSchException "java.io.FileNotFoundException: non-existing key (No such file or directory)"
-        (ssh-exec @session "ls"))))
+        (@ssh-exec-default "ls"))))
 
   (context "with non-existing host"
     (with host "non-existing host")
     (it "should throw exception"
       (should-throw JSchException "java.net.UnknownHostException: non-existing host"
-        (ssh-exec @session "ls"))))
+        (@ssh-exec-default "ls"))))
 
   (context "with wrong port"
     (with port 55555)
     (it "should throw exception"
       (should-throw JSchException "java.net.ConnectException: Connection refused"
-        (ssh-exec @session "ls"))))
+        (@ssh-exec-default "ls"))))
 
   (context "with wrong user"
     (with user "non-existing-user")
     (it "should throw exception"
       (should-throw JSchException "Auth fail"
-        (ssh-exec @session "ls")))))
+        (@ssh-exec-default "ls")))))

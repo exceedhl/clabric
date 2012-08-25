@@ -7,7 +7,7 @@
 (defn run [command & options]
   (distribute (fn [option]
                 (let [option (merge option (apply array-map options))]
-                  (ssh-exec (ssh-session option) command)))))
+                  (ssh-exec command option)))))
 
 (defn- split-and-filter-cmds [cmds]
   (map #(vec (filter (complement empty?) (split %1 (re-pattern "\\s+"))))

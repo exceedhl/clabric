@@ -5,9 +5,12 @@
 
 (defrecord Task [^String name hosts ^String description body])
 
+(defn- merge-hosts [hosts]
+  (vec (set hosts)))
+
 (defmacro deftask
   [name hosts description & body]
-  `(def ~name (Task. (name '~name) ~hosts ~description (fn [] ~@body))))
+  `(def ~name (Task. (name '~name) ~(merge-hosts hosts) ~description (fn [] ~@body))))
 
 (defn execute [task & options]
   (binding [*hosts* (:hosts task)

@@ -1,7 +1,7 @@
 (ns clabric.task-spec
   (:use 
-    [speclj.core]
-    [clabric.task]))
+   [speclj.core]
+   [clabric.task]))
 
 (defn distributed-action []
   (distribute (fn [option]
@@ -83,6 +83,8 @@
       (deftask t1 ["host1" "host2"] "task t1")
       (should= ["host1" "host2"] (:hosts t1)))
 
-    (it "should merge duplicate hosts while define with duplicate host entries")))
+    (it "should merge duplicate hosts while define with duplicate host entries"
+      (deftask t1 ["host1" "host1" "host2"] "task t1")
+      (should= ["host1" "host2"] (:hosts t1)))))
 
-(run-specs) 
+(run-specs)
