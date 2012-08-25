@@ -51,8 +51,11 @@
       (cmd-test "ls -la" {} 0 #(should (re-find #"drwxr-xr-x" %1)) "")
       (cmd-test "whoami" {} 0 (str (current-user) "\n") "")
       (cmd-test "pwd" {:dir "/usr"} 0 "/usr\n" "")
-      (cmd-test "wrong-command" {} #(should-not= 1 %1) "" #(should (re-find #"No such file or directory" %1)))
-      (cmd-test "find /usr -name bin -d 1" {} 0 "/usr/bin\n" ""))
+      (cmd-test "wrong-command" {} #(should-not= 0 %1) "" #(should (re-find #"No such file or directory" %1)))
+      (cmd-test "find /usr -name bin -d 1" {} 0 "/usr/bin\n" "")
+      (cmd-test "pwd | wc -c | sed -e s/^[[:space:]]*//" {:dir "/usr"} 0 "5\n" "")
+      (should-throw (cmd-exec "" {}))
+      (should-throw (cmd-exec "pwd | " {})))
     
     (it "should pass option to cmd"
       (deftask t1 ["host1"] "task t1"
