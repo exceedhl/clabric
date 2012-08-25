@@ -42,3 +42,6 @@
           ;; (if (> (.size out) 0) (info (.toString out)))
           ;; (if (> (.size err) 0) (error (.toString err)))
           {:exit (.getExitStatus exec) :out (.toString out) :err (.toString err)})))))
+
+(defn ssh-upload [from to options]
+  )
