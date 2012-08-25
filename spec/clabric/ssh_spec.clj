@@ -16,13 +16,22 @@
   (with session
     (ssh-session @session-params))
 
-  (it "should execute command successfully"
+  (it "should be able to execute simple command successfully"
     (let [result (ssh-exec @session "whoami")
           exit (:exit result)
           output (:out result)
           error (:err result)]
       (should= 0 exit)
       (should= (str @user "\n") output)
+      (should= "" error)))
+
+  (it "should be able to execute complex commands successfully"
+    (let [result (ssh-exec @session "cd /tmp; pwd | wc -c")
+          exit (:exit result)
+          output (:out result)
+          error (:err result)]
+      (should= 0 exit)
+      (should= "5\n" output)
       (should= "" error)))
 
   (it "should return error if command execution failed"
