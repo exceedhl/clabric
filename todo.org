@@ -1,6 +1,6 @@
 * add logging
 * do not continue distributing commands to a host if error happens on that host
-* add put, get
+* DONE add put, get
 * support timeout in ssh
 * support password in ssh
 * add a main to support task list, passing options from cli

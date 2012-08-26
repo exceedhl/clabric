@@ -1,7 +1,7 @@
 (ns clabric.dsl-spec
   (:use 
     [speclj.core]
-    [clabric.dsl]
+     [clabric.dsl]
     [clabric.util]
     [clabric.ssh]
     [clabric.task]
@@ -10,11 +10,17 @@
 (defn mock-ssh-exec [command options]
   (merge options {:command command}))
 
+(defn mock-ssh-upload [from to options]
+  (merge options {:from from :to to}))
+
+(defn mock-ssh-put [content to options]
+  (merge options {:content content :to to}))
+
 (describe "DSL"
 
   (context "run command"
 
-    (it "should pass arguments to ssh"
+    (it "should pass arguments to ssh-exec"
       (deftask t1 ["host1"] "task t1"
         (run "ls"))
       (with-redefs [ssh-exec mock-ssh-exec]
@@ -26,6 +32,38 @@
         (run "ls" :opt1 "new opt1" :opt2 "opt2"))
       (with-redefs [ssh-exec mock-ssh-exec]
         (should= {:host "host1" :opt1 "new opt1" :opt2 "opt2" :command "ls"}
+          (first (execute t1 :opt1 "opt1"))))))
+
+  (context "upload command"
+
+    (it "should pass arguments to ssh-upload"
+      (deftask t1 ["host1"] "task t1"
+        (upload "from" "to"))
+      (with-redefs [ssh-upload mock-ssh-upload]
+        (should= {:host "host1" :opt1 "opt1" :from "from" :to "to"}
+          (first (execute t1 :opt1 "opt1")))))
+
+    (it "should be able to override option"
+      (deftask t1 ["host1"] "task t1"
+        (upload "from" "to" :opt1 "new opt1" :opt2 "opt2"))
+      (with-redefs [ssh-upload mock-ssh-upload]
+        (should= {:host "host1" :opt1 "new opt1" :opt2 "opt2" :from "from" :to "to"}
+          (first (execute t1 :opt1 "opt1"))))))
+
+  (context "put command"
+
+    (it "should pass arguments to ssh-put"
+      (deftask t1 ["host1"] "task t1"
+        (put "something" "to"))
+      (with-redefs [ssh-put mock-ssh-put]
+        (should= {:host "host1" :opt1 "opt1" :content "something" :to "to"}
+          (first (execute t1 :opt1 "opt1")))))
+
+    (it "should be able to override option"
+      (deftask t1 ["host1"] "task t1"
+        (put "something" "to" :opt1 "new opt1" :opt2 "opt2"))
+      (with-redefs [ssh-put mock-ssh-put]
+        (should= {:host "host1" :opt1 "new opt1" :opt2 "opt2" :content "something" :to "to"}
           (first (execute t1 :opt1 "opt1"))))))
 
   (context "cmd command"

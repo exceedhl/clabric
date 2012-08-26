@@ -4,11 +4,6 @@
         [clabric.task :only (distribute local)])
   (:require [clj-commons-exec :as exec]))
 
-(defn run [command & options]
-  (distribute (fn [option]
-                (let [option (merge option (apply array-map options))]
-                  (ssh-exec command option)))))
-
 (defn- split-and-filter-cmds [cmds]
   (map #(vec (filter (complement empty?) (split %1 (re-pattern "\\s+"))))
        cmds))
@@ -30,3 +25,17 @@
   (local (fn [option]
            (let [option (merge option (apply array-map options))]
              (cmd-exec command option)))))
+
+(defn- merge-options-and-distribute [f options]
+  #(distribute (fn [option]
+                 (let [option (merge option (apply array-map options))]
+                   (f option)))))
+
+(defn run [command & options]
+  ((merge-options-and-distribute (fn [option] (ssh-exec command option)) options)))
+
+(defn upload [from to & options]
+  ((merge-options-and-distribute (fn [option] (ssh-upload from to option)) options)))
+
+(defn put [content to & options]
+  ((merge-options-and-distribute (fn [option] (ssh-put content to option)) options)))
