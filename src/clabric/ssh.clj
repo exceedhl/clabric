@@ -1,11 +1,19 @@
 (ns clabric.ssh
   (:use [clojure.contrib.def]
-        [clabric.util])
+        [clabric.util]
+        [clojure.java.io]
+        [clabric.SSHException])
   (:import
    [java.io
-    ByteArrayInputStream ByteArrayOutputStream]
+    ByteArrayInputStream
+    ByteArrayOutputStream
+    DataOutputStream
+    BufferedReader
+    InputStreamReader]
    [com.jcraft.jsch
-    JSch Session Channel ChannelShell ChannelExec ChannelSftp JSchException]))
+    JSch Session Channel
+    ChannelShell ChannelExec
+    ChannelSftp JSchException]))
 
 (defn ssh-session [{:keys [host port user private_key_path]
                     :or {port 22
@@ -16,12 +24,12 @@
     (.addIdentity jsch private_key_path)
     (.getSession jsch user host port)))
 
-(defmacro- with-connected-session [session & body]
+(defmacro with-connected-session [session & body]
   `(try (.connect ~session)
         ~@body
         (finally (.disconnect ~session))))
 
-(defmacro- with-connected-channel [ch & body]
+(defmacro with-connected-channel [ch & body]
   `(try (.connect ~ch)
         ~@body
         (finally (.disconnect ~ch))))
@@ -39,9 +47,56 @@
         (with-connected-channel exec
           (while (.isConnected exec)
             (Thread/sleep 100))
-          ;; (if (> (.size out) 0) (info (.toString out)))
-          ;; (if (> (.size err) 0) (error (.toString err)))
           {:exit (.getExitStatus exec) :out (.toString out) :err (.toString err)})))))
 
+(defn- ptimestamp-cmd [filepath]
+  (let [file (file filepath)
+        lm (/ (.lastModified file) 1000)]
+    (str "T " lm " 0" " " lm " 0\n")))
+
+(defn- filesize-and-permission-cmd [filepath permission]
+  (let [file (file filepath)
+        filesize (.length file)]
+    (str "C" permission " " filesize " " (.getName file) "\n")))
+
+(defn- in->out [in out]
+  (let [o (DataOutputStream. out)
+        s (slurp in)]
+    (.writeBytes o s)))
+
+(defn- string->out [s out]
+  (let [out (DataOutputStream. out)]
+    (.writeBytes out s)))
+
+(defn- readline [in]
+  (.readLine (BufferedReader. (InputStreamReader. in))))
+
+(defn- check-ack [in]
+  (let [b (.read in)]
+    (if (not= 0 (int b))
+      (throw (clabric.SSHException. (readline in))))))
+
 (defn ssh-upload [from to options]
-  )
+  (let [session (ssh-session options)]
+    (with-connected-session session
+      (let [^ChannelExec exec (.openChannel session "exec")]
+        (.setCommand exec (str "scp -p -t " to))
+        (with-connected-channel exec
+          (let [ptimestamp-cmd (ptimestamp-cmd from)
+                mode (or (:mode options) "0644")
+                size-and-perm-cmd (filesize-and-permission-cmd from mode)
+                fin (input-stream from)
+                in (.getInputStream exec)
+                out (.getOutputStream exec)]
+            (check-ack in)
+            (string->out ptimestamp-cmd out)
+            (.flush out)
+            (check-ack in)
+            (string->out size-and-perm-cmd out)
+            (.flush out)
+            (check-ack in)
+            (in->out fin out)
+            (string->out "\0" out) 
+            (.close out)
+            (check-ack in)
+            {:exit 0 :err ""}))))))

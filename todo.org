@@ -5,6 +5,7 @@
 * support password in ssh
 * add a main to support task list, passing options from cli
 * add lein support
+* upload large file (read large file)
 
 ;; (def ^:dynamic *options* {})
 
