@@ -80,15 +80,17 @@
         (should-throw JSchException "Auth fail"
           (@ssh-exec-default "ls")))))
 
-  (context "put"
+  (context "upload"
 
     (with local-file "/tmp/a.txt")
     (with file-content "hello")
     (with remote-file "/tmp/b.txt")
     (with ssh-upload-default #(ssh-upload %1 %2 @options))
+    (with remove-remote-file #(@ssh-exec-default (str "rm -rf " @remote-file)))
 
     (it "should be able to upload a file to the server"
       (spit @local-file @file-content)
+      (@remove-remote-file)
       (let [result (@ssh-upload-default @local-file @remote-file)
             exit (:exit result)
             error (:err result)]
@@ -101,6 +103,7 @@
       (with options {:user @user :host @host :private_key_path @private_key_path :mode "0755"})
       (it "should be able to set remote file mode"
         (spit @local-file @file-content)
+        (@remove-remote-file)
         (@ssh-upload-default @local-file @remote-file)
         (let [result (@ssh-exec-default (str "ls -la " @remote-file " | cut -d ' ' -f 1"))]
           (should= "-rwxr-xr-x\n" (:out result)))))
@@ -113,4 +116,16 @@
     (context "when remote file is not writable"
       (with remote-file "/etc/passwd")
       (it "should throw exception"
-        (should-throw clabric.SSHException "scp: /etc/passwd: Permission denied" (@ssh-upload-default @local-file @remote-file))))))
+        (should-throw clabric.SSHException "scp: /etc/passwd: Permission denied" (@ssh-upload-default @local-file @remote-file)))))
+
+  (context "put"
+
+    (with file-content "hello")
+    (with remote-file "/tmp/b.txt")
+    (with remove-remote-file #(@ssh-exec-default (str "rm -rf " @remote-file)))
+
+    (it "should be able to put string to a remote file"
+      (@remove-remote-file)
+      (ssh-put @file-content @remote-file @options)
+      (let [result (@ssh-exec-default (str "cat " @remote-file))]
+        (should= @file-content (:out result))))))

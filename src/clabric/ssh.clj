@@ -5,6 +5,7 @@
         [clabric.SSHException])
   (:import
    [java.io
+    File
     ByteArrayInputStream
     ByteArrayOutputStream
     DataOutputStream
@@ -15,10 +16,13 @@
     ChannelShell ChannelExec
     ChannelSftp JSchException]))
 
+(defn- default-private-key []
+  (str (current-user-home) "/.ssh/id_rsa"))
+
 (defn ssh-session [{:keys [host port user private_key_path]
                     :or {port 22
                          user (current-user)
-                         private_key_path (str (current-user-home) "/.ssh/id_rsa")}}]
+                         private_key_path (default-private-key)}}]
   (JSch/setConfig "StrictHostKeyChecking" "no")
   (let [jsch (JSch.)]
     (.addIdentity jsch private_key_path)
@@ -47,7 +51,9 @@
         (with-connected-channel exec
           (while (.isConnected exec)
             (Thread/sleep 100))
-          {:exit (.getExitStatus exec) :out (.toString out) :err (.toString err)})))))
+          {:exit (.getExitStatus exec)
+           :out (.toString out)
+           :err (.toString err)})))))
 
 (defn- ptimestamp-cmd [filepath]
   (let [file (file filepath)
@@ -100,3 +106,9 @@
             (.close out)
             (check-ack in)
             {:exit 0 :err ""}))))))
+
+(defn ssh-put [string to options]
+  (let [tempfile (File/createTempFile "clabric-" "-temp")
+        filepath (.getCanonicalPath tempfile)]
+    (spit filepath string)
+    (ssh-upload filepath to options)))
