@@ -54,10 +54,10 @@
         lm (/ (.lastModified file) 1000)]
     (str "T " lm " 0" " " lm " 0\n")))
 
-(defn- filesize-and-permission-cmd [filepath permission]
+(defn- filesize-and-mode-cmd [filepath mode]
   (let [file (file filepath)
         filesize (.length file)]
-    (str "C" permission " " filesize " " (.getName file) "\n")))
+    (str "C" mode " " filesize " " (.getName file) "\n")))
 
 (defn- in->out [in out]
   (let [o (DataOutputStream. out)
@@ -84,7 +84,7 @@
         (with-connected-channel exec
           (let [ptimestamp-cmd (ptimestamp-cmd from)
                 mode (or (:mode options) "0644")
-                size-and-perm-cmd (filesize-and-permission-cmd from mode)
+                size-and-mode-cmd (filesize-and-mode-cmd from mode)
                 fin (input-stream from)
                 in (.getInputStream exec)
                 out (.getOutputStream exec)]
@@ -92,7 +92,7 @@
             (string->out ptimestamp-cmd out)
             (.flush out)
             (check-ack in)
-            (string->out size-and-perm-cmd out)
+            (string->out size-and-mode-cmd out)
             (.flush out)
             (check-ack in)
             (in->out fin out)
