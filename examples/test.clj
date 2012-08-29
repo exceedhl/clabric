@@ -17,6 +17,7 @@
   (cmd "uname -a")
   ;; (throw (Exception. "hello, error happened"))
   ;; (cmd "adsfadsf")
-  (cmd "ls -la"))
+  (cmd "ls -la")
+  (execute t2 :user "vagrant" :private_key_path "/Users/huangliang/.ssh/vagrant_private_key"))
 
 (execute t3)
