@@ -1,11 +1,11 @@
 (ns clabric.ssh
   (:use [clojure.contrib.def]
         [clabric.util]
-        [clojure.java.io]
-        [clabric.SSHException])
+        [clojure.java.io])
   (:import
    [java.io
     File
+    FileNotFoundException
     ByteArrayInputStream
     ByteArrayOutputStream
     DataOutputStream
@@ -39,21 +39,24 @@
         (finally (.disconnect ~ch))))
 
 (defn ssh-exec [command options]
-  (let [session (ssh-session options)]
-    (with-connected-session session
-      (let [out (ByteArrayOutputStream.)
-            err (ByteArrayOutputStream.)
-            ^ChannelExec exec (.openChannel session "exec")]
-        (doto exec
-          (.setOutputStream out)
-          (.setErrStream err)
-          (.setCommand command))
-        (with-connected-channel exec
-          (while (.isConnected exec)
-            (Thread/sleep 100))
-          {:exit (.getExitStatus exec)
-           :out (.toString out)
-           :err (.toString err)})))))
+  (try
+    (let [session (ssh-session options)]
+      (with-connected-session session
+        (let [out (ByteArrayOutputStream.)
+              err (ByteArrayOutputStream.)
+              ^ChannelExec exec (.openChannel session "exec")]
+          (doto exec
+            (.setOutputStream out)
+            (.setErrStream err)
+            (.setCommand command))
+          (with-connected-channel exec
+            (while (.isConnected exec)
+              (Thread/sleep 100))
+            {:exit (.getExitStatus exec)
+             :out (.toString out)
+             :err (.toString err)}))))
+    (catch Exception e
+      {:exit 1 :err (.getMessage e) :out ""})))
 
 (defn- ptimestamp-cmd [filepath]
   (let [file (file filepath)
@@ -80,32 +83,47 @@
 (defn- check-ack [in]
   (let [b (.read in)]
     (if (not= 0 (int b))
-      (throw (clabric.SSHException. (readline in))))))
+      (throw (Exception. (readline in))))))
+
+(defn- create-scp-channel [session to]
+  (let [^ChannelExec exec (.openChannel session "exec")]
+    (.setCommand exec (str "scp -p -t " to))
+    exec))
+
+(defn- send-ptimestamp-cmd [from in out]
+  (let [cmd (ptimestamp-cmd from)]
+    (string->out cmd out)
+    (.flush out)
+    (check-ack in)))
+
+(defn- send-size-and-mode-cmd [from mode in out]
+  (let [mode (or mode "0644")
+        cmd (filesize-and-mode-cmd from mode)]
+    (string->out cmd out)
+    (.flush out)
+    (check-ack in)))
+
+(defn- send-file-content [from in out]
+  (let [fin (input-stream from)]
+    (in->out fin out)
+    (string->out "\0" out) 
+    (.close out)
+    (check-ack in)))
 
 (defn ssh-upload [from to options]
-  (let [session (ssh-session options)]
-    (with-connected-session session
-      (let [^ChannelExec exec (.openChannel session "exec")]
-        (.setCommand exec (str "scp -p -t " to))
-        (with-connected-channel exec
-          (let [ptimestamp-cmd (ptimestamp-cmd from)
-                mode (or (:mode options) "0644")
-                size-and-mode-cmd (filesize-and-mode-cmd from mode)
-                fin (input-stream from)
-                in (.getInputStream exec)
-                out (.getOutputStream exec)]
-            (check-ack in)
-            (string->out ptimestamp-cmd out)
-            (.flush out)
-            (check-ack in)
-            (string->out size-and-mode-cmd out)
-            (.flush out)
-            (check-ack in)
-            (in->out fin out)
-            (string->out "\0" out) 
-            (.close out)
-            (check-ack in)
-            {:exit 0 :err ""}))))))
+  (try
+    (let [session (ssh-session options)]
+      (with-connected-session session
+        (let [^ChannelExec exec (create-scp-channel session to)]
+          (with-connected-channel exec
+            (let [in (.getInputStream exec)
+                  out (.getOutputStream exec)]
+              (check-ack in)
+              (send-ptimestamp-cmd from in out)
+              (send-size-and-mode-cmd from (:mode options) in out)
+              (send-file-content from in out)
+              {:exit 0 :err "" :out "File has been uploaded to remote server successfully"})))))
+    (catch Exception e {:exit 1 :err (.getMessage e)})))
 
 (defn ssh-put [string to options]
   (let [tempfile (File/createTempFile "clabric-" "-temp")

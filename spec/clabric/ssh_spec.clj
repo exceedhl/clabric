@@ -58,27 +58,33 @@
   
     (context "with wrong key"
       (with private_key_path "non-existing key")
-      (it "should throw exception"
-        (should-throw JSchException "java.io.FileNotFoundException: non-existing key (No such file or directory)"
-          (@ssh-exec-default "ls"))))
+      (it "should return error"
+        (should-not= 0 (:exit (@ssh-exec-default "ls")))
+        (should= "java.io.FileNotFoundException: non-existing key (No such file or directory)" (:err (@ssh-exec-default "ls")))))
 
     (context "with non-existing host"
       (with host "non-existing host")
-      (it "should throw exception"
-        (should-throw JSchException "java.net.UnknownHostException: non-existing host"
-          (@ssh-exec-default "ls"))))
+      (it "should return error"
+        (let [result (@ssh-exec-default "ls")]
+          (should-not= 0 (:exit result))
+          (should= "java.net.UnknownHostException: non-existing host"
+            (:err result)))))
 
     (context "with wrong port"
       (with port 55555)
-      (it "should throw exception"
-        (should-throw JSchException "java.net.ConnectException: Connection refused"
-          (@ssh-exec-default "ls"))))
+      (it "should return error"
+        (let [result (@ssh-exec-default "ls")]
+          (should-not= 0 (:exit result))
+          (should= "java.net.ConnectException: Connection refused"
+            (:err result)))))
 
     (context "with wrong user"
       (with user "non-existing-user")
-      (it "should throw exception"
-        (should-throw JSchException "Auth fail"
-          (@ssh-exec-default "ls")))))
+      (it "should return error"
+        (let [result (@ssh-exec-default "ls")]
+          (should-not= 0 (:exit result))
+          (should= "Auth fail"
+            (:err result))))))
 
   (context "upload"
 
@@ -93,9 +99,11 @@
       (@remove-remote-file)
       (let [result (@ssh-upload-default @local-file @remote-file)
             exit (:exit result)
-            error (:err result)]
+            error (:err result)
+            output (:out result)]
         (should= 0 exit)
-        (should= "" error))
+        (should= "" error)
+        (should= "File has been uploaded to remote server successfully" output))
       (let [result (@ssh-exec-default (str "cat " @remote-file))]
         (should= @file-content (:out result))))
     
@@ -108,15 +116,27 @@
         (let [result (@ssh-exec-default (str "ls -la " @remote-file " | cut -d ' ' -f 1"))]
           (should= "-rwxr-xr-x\n" (:out result)))))
 
+    (context "with wrong user"
+      (with user "non-existing-user")
+      (it "should return error"
+        (let [result (@ssh-upload-default @local-file @remote-file)]
+          (should-not= 0 (:exit result))
+          (should= "Auth fail"
+            (:err result)))))
+
     (context "when local file not exist"
       (with local-file "non-existing-file")
-      (it "should throw exception"
-        (should-throw FileNotFoundException (@ssh-upload-default @local-file @remote-file))))
+      (it "should return error"
+        (let [result (@ssh-upload-default @local-file @remote-file)]
+          (should-not= 0 (:exit result))
+          (should= "non-existing-file (No such file or directory)" (:err result)))))
 
     (context "when remote file is not writable"
       (with remote-file "/etc/passwd")
-      (it "should throw exception"
-        (should-throw clabric.SSHException "scp: /etc/passwd: Permission denied" (@ssh-upload-default @local-file @remote-file)))))
+      (it "should return error"
+        (let [result (@ssh-upload-default @local-file @remote-file)]
+          (should-not= 0 (:exit result))
+          (should= "scp: /etc/passwd: Permission denied" (:err result))))))
 
   (context "put"
 

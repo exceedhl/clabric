@@ -21,10 +21,23 @@
         :out (or out "")
         :err (or err (if exception (.getMessage exception)) "")))))
 
+(defn- check-result [result]
+  (if (not= 0 (:exit result))
+    (do
+      (println (:err result))
+      (System/exit (:exit result)))
+    result))
+
+(defn- check-and-return-results [results]
+  (doseq [result results]
+    (check-result result))
+  results)
+
 (defn cmd [command & options]
-  (local (fn [option]
-           (let [option (merge option (apply array-map options))]
-             (cmd-exec command option)))))
+  (let [result (local (fn [option]
+                        (let [option (merge option (apply array-map options))]
+                          (cmd-exec command option))))]
+    (check-result result)))
 
 (defn- merge-options-and-distribute [f options]
   #(distribute (fn [option]
@@ -32,10 +45,16 @@
                    (f option)))))
 
 (defn run [command & options]
-  ((merge-options-and-distribute (fn [option] (ssh-exec command option)) options)))
+  (check-and-return-results
+   ((merge-options-and-distribute
+     (fn [option] (ssh-exec command option)) options))))
 
 (defn upload [from to & options]
-  ((merge-options-and-distribute (fn [option] (ssh-upload from to option)) options)))
+  (check-and-return-results
+   ((merge-options-and-distribute
+     (fn [option] (ssh-upload from to option)) options))))
 
 (defn put [content to & options]
-  ((merge-options-and-distribute (fn [option] (ssh-put content to option)) options)))
+  (check-and-return-results
+   ((merge-options-and-distribute
+     (fn [option] (ssh-put content to option)) options))))

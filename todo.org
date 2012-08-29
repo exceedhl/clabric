@@ -1,47 +1,33 @@
 * add logging
 * do not continue distributing commands to a host if error happens on that host
+** add support for parallel exception catch
 * DONE add put, get
 * support timeout in ssh
 * support password in ssh
 * add a main to support task list, passing options from cli
+* add sudo support in ssh exec
 * add lein support
 * upload large file (read large file)
 
-;; (def ^:dynamic *options* {})
 
-;; (deftype Task
-;;     ...)
+(deftask deploy-app app-hosts
+  (run "yum makecache" :user "root")
+  (run "yum install -y httpd xxx" :private_key_path "key_file")
+  (cmd "turn off monitoring" :timeout 60)
+  (put "some-file" "/tmp/chef.json")
+  (println "hello, word")
+  (run "chef-solo -r solo.rb -j chef.json")
+  (cmd "turn on monitoring")
+  (cmd "switch LB"))
 
-;; ;;; register task
-;; (deftask deploy-app app-hosts           ; [app-hosts db-hosts]
-;;   (run "yum makecache" :user "root")
-;;   (run "yum install -y httpd xxx" :private_key_path "key_file")
-;;   (cmd "turn off monitoring" :timeout 60)
-;;   (put "some-file" "/tmp/chef.json")
-;;   (println "hello, word")
-;;   (run "chef-solo -r solo.rb -j chef.json")
-;;   (cmd "turn on monitoring")
-;;   (cmd "switch LB"))
+(deftask provision-db []
+  (execute create-db)
+  (execute deploy-db))
 
-;; (deftask provision-db []
-;;   (execute create-db)
-;;   (execute deploy-db))
+(execute create-rcrm)
+(execute deploy-app)
+(execute deploy-rcrm)
 
-;; (execute create-rcrm)
-;; (execute deploy-app)
-;; (execute deploy-rcrm)
+(execute provision-db :user "root")
 
-;; (execute provision-db :user "root")
-
-;; (defn cmd [command & options]
-;;   (...))
-
-;; (defn run [command & options]
-;;   (let [p (merge *execution-params* (apply array-map options))]
-;;    (parallel (map (fn [host]
-;;                     (fn []
-;;                       (let [params (merge p {:host host})]
-;;                         (ssh-exec (ssh-session params) command))))
-;;                   *hosts*))))
-
-;;; deploy create-app -Duser=vagrant -Dport=422 -Dprivate_key_path="...."
+create-app -Duser=vagrant -Dport=422 -Dprivate_key_path="...."
