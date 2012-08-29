@@ -4,8 +4,7 @@
     [clabric.dsl]
     [clabric.util]
     [clabric.ssh]
-    [clabric.task]
-    [clojure.contrib.mock]))
+    [clabric.task]))
 
 (defn mock-ssh-exec [command options]
   (merge options {:command command :exit 0}))
@@ -24,6 +23,11 @@
 
 (defn error-mock-ssh-put [content to options]
   (merge options {:content content :to to :exit 1 :err "error happened"}))
+
+(defn create-mock-exit [expected-exit-code expected-message]
+  (fn [exit-code message]
+    (should= expected-exit-code exit-code)
+    (should (re-find (re-pattern expected-message) message))))
 
 
 (describe "DSL"
@@ -58,8 +62,9 @@
     (it "should throw exception if there is an error on some host"
       (deftask t1 ["host1" "host2"] "task t1"
         (run "ls"))
-      (with-redefs [ssh-exec error-mock-ssh-exec]
-        (should-throw Exception "error happened" (execute t1)))))
+      (with-redefs [ssh-exec error-mock-ssh-exec
+                    exit (create-mock-exit 1 "error happened")]
+        (execute t1))))
 
   (context "upload command"
 
@@ -91,8 +96,9 @@
     (it "should throw exception if there is an error on some host"
       (deftask t1 ["host1" "host2"] "task t1"
         (upload "from" "to"))
-      (with-redefs [ssh-upload error-mock-ssh-upload]
-        (should-throw Exception "error happened" (execute t1)))))
+      (with-redefs [ssh-upload error-mock-ssh-upload
+                    exit (create-mock-exit 1 "error happened")]
+        (execute t1))))
 
   (context "put command"
 
@@ -124,8 +130,9 @@
     (it "should throw exception if there is an error on some host"
       (deftask t1 ["host1" "host2"] "task t1"
         (put "something" "to"))
-      (with-redefs [ssh-put error-mock-ssh-put]
-        (should-throw Exception "error happened" (execute t1)))))
+      (with-redefs [ssh-put error-mock-ssh-put
+                    exit (create-mock-exit 1 "error happened")]
+        (execute t1))))
 
   (context "cmd command"
 
@@ -175,4 +182,5 @@
     (it "should throw exception if execution failed"
       (deftask t1 ["host1" "host2"] "task t1"
         (cmd "wrong-command"))
-      (should-throw Exception (execute t1)))))
+      (with-redefs [exit (create-mock-exit -559038737 "Cannot run program \"wrong-command\"")]
+        (execute t1)))))

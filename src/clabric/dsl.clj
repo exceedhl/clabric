@@ -1,5 +1,6 @@
 (ns clabric.dsl
   (:use [clabric.ssh]
+        [clabric.util]
         [clojure.string :only (join split)]
         [clabric.task :only (distribute local)])
   (:require [clj-commons-exec :as exec]))
@@ -23,9 +24,7 @@
 
 (defn- check-result [result]
   (if (not= 0 (:exit result))
-    (do
-      (println (:err result))
-      (System/exit (:exit result)))
+    (exit (:exit result) (:err result))
     result))
 
 (defn- check-and-return-results [results]
