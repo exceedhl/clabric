@@ -1,6 +1,6 @@
 # clabric
 
-A fabric like library/tool for streamlining the use of SSH for
+A [fabric](http://docs.fabfile.org/) like library/tool for streamlining the use of SSH for
 application deployment or systems administration tasks.
 
 ## Usage
