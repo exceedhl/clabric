@@ -1,7 +1,8 @@
 (ns clabric.ssh
   (:use [clojure.contrib.def]
         [clabric.util]
-        [clojure.java.io])
+        [clojure.java.io]
+        [clabric.logging])
   (:import
    [java.io
     File
@@ -39,6 +40,7 @@
         (finally (.disconnect ~ch))))
 
 (defn ssh-exec [command options]
+  (debug (:host options) "Execute command:" command "with options:" options)
   (try
     (let [session (ssh-session options)]
       (with-connected-session session
@@ -52,9 +54,12 @@
           (with-connected-channel exec
             (while (.isConnected exec)
               (Thread/sleep 100))
-            {:exit (.getExitStatus exec)
-             :out (.toString out)
-             :err (.toString err)}))))
+            (let [output (.toString out)
+                  error (.toString err)]
+              (log-host-and-result (:host options) output error)
+              {:exit (.getExitStatus exec)
+               :out output
+               :err error})))))
     (catch Exception e
       {:exit 1 :err (.getMessage e) :out ""})))
 
@@ -67,11 +72,6 @@
   (let [file (file filepath)
         filesize (.length file)]
     (str "C" mode " " filesize " " (.getName file) "\n")))
-
-(defn- in->out [in out]
-  (let [o (DataOutputStream. out)
-        s (slurp in)]
-    (.writeBytes o s)))
 
 (defn- string->out [s out]
   (let [out (DataOutputStream. out)]
@@ -105,12 +105,13 @@
 
 (defn- send-file-content [from in out]
   (let [fin (input-stream from)]
-    (in->out fin out)
+    (copy fin out)
     (string->out "\0" out) 
     (.close out)
     (check-ack in)))
 
 (defn ssh-upload [from to options]
+  (debug (:host options) "Uploading file from:" from "to:" to "with options:" options)
   (try
     (let [session (ssh-session options)]
       (with-connected-session session
@@ -122,8 +123,12 @@
               (send-ptimestamp-cmd from in out)
               (send-size-and-mode-cmd from (:mode options) in out)
               (send-file-content from in out)
+              (info (:host options) "File transfer complete")
               {:exit 0 :err "" :out "File has been uploaded to remote server successfully"})))))
-    (catch Exception e {:exit 1 :err (.getMessage e)})))
+    (catch Exception e
+      (do
+        (log-host-and-result (:host options) nil nil e)
+        {:exit 1 :err (.getMessage e)}))))
 
 (defn ssh-put [string to options]
   (let [tempfile (File/createTempFile "clabric-" "-temp")

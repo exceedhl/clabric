@@ -6,7 +6,7 @@
 
 (defn- check-result [result]
   (if (not= 0 (:exit result))
-    (exit (:exit result) (:err result))
+    (exit (:exit result))
     result))
 
 (defn- check-and-return-results [results]

@@ -1,6 +1,7 @@
 (ns clabric.shell-spec
   (:use 
     [speclj.core]
+    [clabric.shell]
     [clabric.util]))
 
 (describe "Shell"
