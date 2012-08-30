@@ -17,6 +17,8 @@ application deployment or systems administration tasks.
     (deftask t3 ["localhost"] "task t3"
       (cmd "uname -a")
       (cmd "ls -la")
+      (run "yum install -y httpd" :user "root")
+      (run "sudo yum install -y httpd")
       (execute t2))
 
     (execute t3)
