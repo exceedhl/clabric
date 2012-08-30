@@ -24,11 +24,6 @@
 (defn error-mock-ssh-put [content to options]
   (merge options {:content content :to to :exit 1 :err "error happened"}))
 
-(defn create-mock-exit [expected-exit-code]
-  (fn [exit-code]
-    (should= expected-exit-code exit-code)))
-
-
 (describe "DSL"
 
   (context "run command"
@@ -61,9 +56,8 @@
     (it "should throw exception if there is an error on some host"
       (deftask t1 ["host1" "host2"] "task t1"
         (run "ls"))
-      (with-redefs [ssh-exec error-mock-ssh-exec
-                    exit (create-mock-exit 1)]
-        (execute t1))))
+      (with-redefs [ssh-exec error-mock-ssh-exec]
+        (should-throw Exception (execute t1)))))
 
   (context "upload command"
 
@@ -95,9 +89,8 @@
     (it "should throw exception if there is an error on some host"
       (deftask t1 ["host1" "host2"] "task t1"
         (upload "from" "to"))
-      (with-redefs [ssh-upload error-mock-ssh-upload
-                    exit (create-mock-exit 1)]
-        (execute t1))))
+      (with-redefs [ssh-upload error-mock-ssh-upload]
+        (should-throw Exception (execute t1)))))
 
   (context "put command"
 
@@ -129,9 +122,8 @@
     (it "should throw exception if there is an error on some host"
       (deftask t1 ["host1" "host2"] "task t1"
         (put "something" "to"))
-      (with-redefs [ssh-put error-mock-ssh-put
-                    exit (create-mock-exit 1)]
-        (execute t1))))
+      (with-redefs [ssh-put error-mock-ssh-put]
+        (should-throw Exception (execute t1)))))
 
   (context "cmd command"
 
@@ -159,5 +151,4 @@
     (it "should throw exception if execution failed"
       (deftask t1 ["host1" "host2"] "task t1"
         (cmd "wrong-command"))
-      (with-redefs [exit (create-mock-exit -559038737)]
-        (execute t1)))))
+      (should-throw Exception (execute t1)))))

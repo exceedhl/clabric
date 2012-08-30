@@ -1,12 +1,11 @@
 (ns clabric.dsl
   (:use [clabric.ssh]
         [clabric.shell]
-        [clabric.util]
         [clabric.task :only (distribute local)]))
 
 (defn- check-result [result]
   (if (not= 0 (:exit result))
-    (exit (:exit result))
+    (throw (Exception. "Clabric exit because some error happened!"))
     result))
 
 (defn- check-and-return-results [results]

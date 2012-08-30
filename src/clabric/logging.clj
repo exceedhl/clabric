@@ -5,9 +5,7 @@
 (set-loggers! :root
               {:pattern "%c %p %m %n" :level :info}
               "clabric"
-              {:pattern "[%X{host}] %p %m %n" :level :debug}
-              "clabric.util"
-              {:pattern "%p %m %n" :level :info})
+              {:pattern "[%X{host}] %p %m %n" :level :debug})
 
 (defmacro info [host & message]
   `(with-logging-context {:host ~host}
