@@ -123,7 +123,7 @@
               (send-ptimestamp-cmd from in out)
               (send-size-and-mode-cmd from (:mode options) in out)
               (send-file-content from in out)
-              (info (:host options) "File transfer complete")
+              (info (:host options) (str "File " from " transfer complete."))
               {:exit 0 :err "" :out "File has been uploaded to remote server successfully"})))))
     (catch Exception e
       (do

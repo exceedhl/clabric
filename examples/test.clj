@@ -6,11 +6,11 @@
 
 (deftask t2 ["33.33.33.10"] "task t2"
   (run "ps aux"),
-  (cmd "adsfadsf")
+  ;; (cmd "adsfadsf")
   ;; (run "whoami" :user "root")
-  ;; (run "asdf")
   (cmd "ls -la")
-  (put "adsfasdfads\n" "/tmp/c.txt"))
+  (put "adsfasdfads\n" "/tmp/c.txt")
+  (run "asdf"))
 
 (execute t2 :user "vagrant" :private_key_path "/Users/huangliang/.ssh/vagrant_private_key")
 
