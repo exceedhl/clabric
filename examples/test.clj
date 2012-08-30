@@ -1,16 +1,16 @@
 (ns clabric.test
   (:use
-   [clabric.logging]
    [clabric.task]
    [clabric.dsl]))
 
 (deftask t2 ["33.33.33.10"] "task t2"
-  (run "ps aux"),
+  (run "ps aux")
+  (upload "/Users/huangliang/Downloads/Skype_5.8.0.1027.dmg" "/tmp/a.dmg")
   ;; (cmd "adsfadsf")
   ;; (run "whoami" :user "root")
   (cmd "ls -la")
   (put "adsfasdfads\n" "/tmp/c.txt")
-  (run "asdf"))
+  (run "sudo cat /etc/passwd"))
 
 (execute t2 :user "vagrant" :private_key_path "/Users/huangliang/.ssh/vagrant_private_key")
 

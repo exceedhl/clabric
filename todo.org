@@ -1,11 +1,11 @@
-* add logging
-* do not continue distributing commands to a host if error happens on that host
-** add support for parallel exception catch
+* support ~ in upload path
+* DONE add logging
+* DONE do not continue distributing commands to a host if error happens on that host
 * DONE add put, get
 * support timeout in ssh
 * support password in ssh
 * add a main to support task list, passing options from cli
-* add sudo support in ssh exec
+* DONE add sudo support in ssh exec
 * add lein support
 * upload large file (read large file)
 
