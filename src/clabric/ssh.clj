@@ -1,5 +1,5 @@
 (ns clabric.ssh
-  (:use [clojure.contrib.def]
+  (:use [clojure.core.incubator]
         [clabric.util]
         [clojure.java.io]
         [clabric.logging])
